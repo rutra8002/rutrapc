@@ -1,0 +1,23 @@
+// Onboard 27MHz clock
+IO_LOC "clk" 52;
+IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+// Onboard button S1, used as active-low reset
+IO_LOC "rst_n_btn" 4;
+IO_PORT "rst_n_btn" IO_TYPE=LVCMOS18 PULL_MODE=UP;
+
+// tmds clock
+IO_LOC "tmds_clk" 69,68;
+IO_PORT "tmds_clk" IO_TYPE=LVCMOS33D PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+//blu channel
+IO_LOC "tmds_d[0]" 71,70;
+IO_PORT "tmds_d[0]" IO_TYPE=LVCMOS33D PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+//greenchanel
+IO_LOC "tmds_d[1]" 73,72;
+IO_PORT "tmds_d[1]" IO_TYPE=LVCMOS33D PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+//redchanel
+IO_LOC "tmds_d[2]" 75,74;
+IO_PORT "tmds_d[2]" IO_TYPE=LVCMOS33D PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
