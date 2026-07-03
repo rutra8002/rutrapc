@@ -39,7 +39,7 @@ module video_timing (
         end
     end
 
-    // Sync pulses are active-low for this timing (standard for 640x480@60)
+    // Sync pulses are active-low for this timing
     assign hsync  = ~((h_count >= H_ACTIVE + H_FP) && (h_count < H_ACTIVE + H_FP + H_SYNC));
     assign vsync  = ~((v_count >= V_ACTIVE + V_FP) && (v_count < V_ACTIVE + V_FP + V_SYNC));
     assign active = (h_count < H_ACTIVE) && (v_count < V_ACTIVE);

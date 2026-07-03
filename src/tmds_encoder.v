@@ -41,10 +41,9 @@ module tmds_encoder (
 
     // ---- Stage 2: DC balancing using running disparity, 9 bits -> 10 bits ----
     // running_disparity tracks the long-term 1s-vs-0s imbalance sent so far,
-    // so we can keep nudging future symbols to cancel it back out
     reg signed [4:0] running_disparity = 0;
 
-    // Fixed control-period symbols (from the DVI spec) — sent during blanking instead of color
+    // Fixed control-period symbols  - sent during blanking instead of color
     function [9:0] control_symbol(input [1:0] c);
         case (c)
             2'b00: control_symbol = 10'b1101010100;
