@@ -1,11 +1,10 @@
 module hdmi_top (
     input  wire clk,          // 27MHz onboard clock (pin 52)
     input  wire rst_n_btn,    // onboard button S1, active-low (pin 4)
-    output wire tmds_clk,
-    output wire [2:0] tmds_d
+    output wire tmds_clk_p, tmds_clk_n,
+    output wire [2:0] tmds_d_p, tmds_d_n
 );
 
-    wire rst_n = rst_n_btn;
 
     // ---------------------------------------------------------
     // Clocks
@@ -22,7 +21,7 @@ module hdmi_top (
         .clkin  (clk)
     );
 
-    wire clk_rst_n = rst_n & pll_lock;
+    wire clk_rst_n = rst_n_btn & pll_lock;
 
     CLKDIV #(
         .DIV_MODE("5"),
@@ -72,57 +71,23 @@ module hdmi_top (
     end
 
     // ---------------------------------------------------------
-    // TMDS encoders — one per channel
-    // HDMI convention: channel 0 = blue (carries hsync/vsync in blanking),
-    // channel 1 = green, channel 2 = red
+    // DVI TX IP core — handles TMDS encoding + serialization +
+    // TLVDS output buffering for all four channels internally.
     // ---------------------------------------------------------
-    wire [9:0] tmds_blue, tmds_green, tmds_red;
-
-    tmds_encoder enc_b (
-        .clk(pixel_clk), .rst_n(clk_rst_n),
-        .pixel_data(blue), .control_bits({vsync,hsync}), .data_enable(active), .tmds_out(tmds_blue)
-    );
-    tmds_encoder enc_g (
-        .clk(pixel_clk), .rst_n(clk_rst_n),
-        .pixel_data(green), .control_bits(2'b00), .data_enable(active), .tmds_out(tmds_green)
-    );
-    tmds_encoder enc_r (
-        .clk(pixel_clk), .rst_n(clk_rst_n),
-        .pixel_data(red), .control_bits(2'b00), .data_enable(active), .tmds_out(tmds_red)
-    );
-
-    // ---------------------------------------------------------
-    // Serializers: 10-bit parallel -> 1-bit serial per channel.
-    // OSER10 uses PCLK (pixel clock) + FCLK (5x serial clock) with DDR
-    // internally to shift out all 10 bits per pixel-clock period.
-    // The clock channel just repeats a fixed 1111100000 pattern.
-    // ---------------------------------------------------------
-    OSER10 oser_clk (
-        .Q(tmds_clk),
-        .D0(1'b1),.D1(1'b1),.D2(1'b1),.D3(1'b1),.D4(1'b1),
-        .D5(1'b0),.D6(1'b0),.D7(1'b0),.D8(1'b0),.D9(1'b0),
-        .PCLK(pixel_clk), .FCLK(serial_clk), .RESET(~clk_rst_n)
-    );
-
-    OSER10 oser_d0 (
-        .Q(tmds_d[0]),
-        .D0(tmds_blue[0]),.D1(tmds_blue[1]),.D2(tmds_blue[2]),.D3(tmds_blue[3]),.D4(tmds_blue[4]),
-        .D5(tmds_blue[5]),.D6(tmds_blue[6]),.D7(tmds_blue[7]),.D8(tmds_blue[8]),.D9(tmds_blue[9]),
-        .PCLK(pixel_clk), .FCLK(serial_clk), .RESET(~clk_rst_n)
-    );
-
-    OSER10 oser_d1 (
-        .Q(tmds_d[1]),
-        .D0(tmds_green[0]),.D1(tmds_green[1]),.D2(tmds_green[2]),.D3(tmds_green[3]),.D4(tmds_green[4]),
-        .D5(tmds_green[5]),.D6(tmds_green[6]),.D7(tmds_green[7]),.D8(tmds_green[8]),.D9(tmds_green[9]),
-        .PCLK(pixel_clk), .FCLK(serial_clk), .RESET(~clk_rst_n)
-    );
-
-    OSER10 oser_d2 (
-        .Q(tmds_d[2]),
-        .D0(tmds_red[0]),.D1(tmds_red[1]),.D2(tmds_red[2]),.D3(tmds_red[3]),.D4(tmds_red[4]),
-        .D5(tmds_red[5]),.D6(tmds_red[6]),.D7(tmds_red[7]),.D8(tmds_red[8]),.D9(tmds_red[9]),
-        .PCLK(pixel_clk), .FCLK(serial_clk), .RESET(~clk_rst_n)
+    DVI_TX_Top u_dvi_tx (
+        .I_rst_n      (clk_rst_n),
+        .I_serial_clk (serial_clk),
+        .I_rgb_clk    (pixel_clk),
+        .I_rgb_vs     (vsync),
+        .I_rgb_hs     (hsync),
+        .I_rgb_de     (active),
+        .I_rgb_r      (red),
+        .I_rgb_g      (green),
+        .I_rgb_b      (blue),
+        .O_tmds_clk_p (tmds_clk_p),
+        .O_tmds_clk_n (tmds_clk_n),
+        .O_tmds_data_p(tmds_d_p),
+        .O_tmds_data_n(tmds_d_n)
     );
 
 endmodule

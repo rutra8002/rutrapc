@@ -6,18 +6,14 @@ IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=UP;
 IO_LOC "rst_n_btn" 4;
 IO_PORT "rst_n_btn" IO_TYPE=LVCMOS18 PULL_MODE=UP;
 
-// tmds clock
-IO_LOC "tmds_clk" 69,68;
-IO_PORT "tmds_clk" IO_TYPE=LVCMOS33D PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "tmds_clk_p" 69;
+IO_LOC "tmds_clk_n" 68;
 
-//blu channel
-IO_LOC "tmds_d[0]" 71,70;
-IO_PORT "tmds_d[0]" IO_TYPE=LVCMOS33D PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "tmds_d_p[0]" 71;
+IO_LOC "tmds_d_n[0]" 70;
 
-//greenchanel
-IO_LOC "tmds_d[1]" 73,72;
-IO_PORT "tmds_d[1]" IO_TYPE=LVCMOS33D PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "tmds_d_p[1]" 73;
+IO_LOC "tmds_d_n[1]" 72;
 
-//redchanel
-IO_LOC "tmds_d[2]" 75,74;
-IO_PORT "tmds_d[2]" IO_TYPE=LVCMOS33D PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "tmds_d_p[2]" 75;
+IO_LOC "tmds_d_n[2]" 74;
