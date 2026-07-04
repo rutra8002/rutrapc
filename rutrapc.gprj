@@ -8,6 +8,9 @@
         <File path="src/dvi_tx/dvi_tx.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_rpll/gowin_rpll.v" type="file.verilog" enable="1"/>
         <File path="src/hdmi_top.v" type="file.verilog" enable="1"/>
+        <File path="src/rutracpu.v" type="file.verilog" enable="1"/>
+        <File path="src/rutracpu_rom.v" type="file.verilog" enable="1"/>
+        <File path="src/rutragpu.v" type="file.verilog" enable="1"/>
         <File path="src/video_timing.v" type="file.verilog" enable="1"/>
         <File path="src/hdmi.cst" type="file.cst" enable="1"/>
     </FileList>

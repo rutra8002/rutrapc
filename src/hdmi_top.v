@@ -50,23 +50,67 @@ module hdmi_top (
     );
 
     // ---------------------------------------------------------
-    // Test pattern: 8 vertical color bars across the screen
+    // rutraCPU + rutraGPU
+    // ---------------------------------------------------------
+    wire cpu_reset = ~clk_rst_n;   // active-high reset for CPU/GPU
+
+    wire [7:0]  cpu_pc;
+    wire [11:0] cpu_instr;
+    wire [7:0]  cpu_acc;
+    wire [7:0]  cpu_out_data;
+    wire        cpu_out_valid;
+    wire        cpu_out_is_char;
+    wire        cpu_halted;
+
+    rutracpu_rom u_rom (
+        .address     (cpu_pc),
+        .instruction (cpu_instr)
+    );
+
+    rutracpu u_cpu (
+        .clk         (pixel_clk),
+        .reset       (cpu_reset),
+        .instruction (cpu_instr),
+        .pc          (cpu_pc),
+        .acc         (cpu_acc),
+        .out_data    (cpu_out_data),
+        .out_valid   (cpu_out_valid),
+        .out_is_char (cpu_out_is_char),
+        .halted      (cpu_halted)
+    );
+
+    // Scale the 16x16 framebuffer up to fill the 640x480 active area
+    wire [3:0] vid_x = x / 10'd40;   // 640 / 16 = 40 px 
+    wire [3:0] vid_y = y / 10'd30;   // 480 / 16 = 30 px 
+    wire       vid_pixel;
+    wire       gpu_consumed;
+    wire       gpu_present_pulse;
+
+    rutragpu u_gpu (
+        .clk           (pixel_clk),
+        .reset         (cpu_reset),
+        .in_valid      (cpu_out_valid),
+        .in_is_char    (cpu_out_is_char),
+        .in_data       (cpu_out_data),
+        .consumed      (gpu_consumed),
+        .present_pulse (gpu_present_pulse),
+        .vid_x         (vid_x),
+        .vid_y         (vid_y),
+        .vid_pixel     (vid_pixel)
+    );
+
+    // ---------------------------------------------------------
+    // white if on, blueish black if off
     // ---------------------------------------------------------
     reg [7:0] red, green, blue;
     always @(posedge pixel_clk) begin
         if (active) begin
-            case (x/80) // 640/8=80
-                3'd0: {red,green,blue} <= {8'hFF,8'hFF,8'hFF}; // white
-                3'd1: {red,green,blue} <= {8'hFF,8'hFF,8'h00}; // yellow
-                3'd2: {red,green,blue} <= {8'h00,8'hFF,8'hFF}; // cyan
-                3'd3: {red,green,blue} <= {8'h00,8'hFF,8'h00}; // green
-                3'd4: {red,green,blue} <= {8'hFF,8'h00,8'hFF}; // magenta
-                3'd5: {red,green,blue} <= {8'hFF,8'h00,8'h00}; // red
-                3'd6: {red,green,blue} <= {8'h00,8'h00,8'hFF}; // blue
-                default: {red,green,blue} <= {8'h00,8'h00,8'h00}; // black
-            endcase
+            if (vid_pixel)
+                {red, green, blue} <= {8'hFF, 8'hFF, 8'hFF}; // white
+            else
+                {red, green, blue} <= {8'h00, 8'h00, 8'h20}; // dim blue
         end else begin
-            {red,green,blue} <= 24'h0;
+            {red, green, blue} <= 24'h0;
         end
     end
 
