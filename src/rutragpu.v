@@ -7,8 +7,8 @@ module rutragpu (
     output wire consumed,
     output reg present_pulse,
 
-    input  wire [3:0] vid_x,
-    input  wire [3:0] vid_y,
+    input  wire [5:0] vid_x,
+    input  wire [5:0] vid_y,
     output wire        vid_pixel
 );
     localparam [7:0] CMD_SET_X = 8'hF0;
@@ -17,17 +17,21 @@ module rutragpu (
     localparam [7:0] CMD_CLEAR = 8'hF3;
     localparam [7:0] CMD_PRESENT = 8'hF4;
 
-    localparam [1:0] WAIT_COMMAND = 2'd0;
-    localparam [1:0] WAIT_X = 2'd1;
-    localparam [1:0] WAIT_Y = 2'd2;
-    localparam [1:0] WAIT_PLOT = 2'd3;
+    localparam [2:0] WAIT_COMMAND = 3'd0;
+    localparam [2:0] WAIT_X       = 3'd1;
+    localparam [2:0] WAIT_Y       = 3'd2;
+    localparam [2:0] WAIT_PLOT    = 3'd3;
+    localparam [2:0] CLEARING     = 3'd4; 
 
-    reg [1:0] state;
-    reg [3:0] cursor_x;
-    reg [3:0] cursor_y;
-    reg framebuffer [0:255];
+    localparam FB_SIZE = 3072;              // 64 x 48
+
+    reg [2:0]  state;
+    reg [5:0]  cursor_x;
+    reg [5:0]  cursor_y;
+    reg [11:0] clear_addr;
+    reg        framebuffer [0:FB_SIZE-1];
     wire is_command;
-    
+
     assign is_command = (in_data == CMD_SET_X) ||
                         (in_data == CMD_SET_Y) ||
                         (in_data == CMD_PLOT) ||
@@ -45,56 +49,68 @@ module rutragpu (
     // fetch the pixel value for the block currently being scanned out.
     assign vid_pixel = framebuffer[{vid_y, vid_x}];
 
-    integer i;
+    wire        wr_en   = (state == CLEARING) ||
+                          (state == WAIT_PLOT && in_valid && in_is_char);
+    wire [11:0] wr_addr = (state == CLEARING) ? clear_addr : {cursor_y, cursor_x};
+    wire        wr_data = (state == CLEARING) ? 1'b0 : (in_data != 8'd0);
+
     always @(posedge clk or posedge reset) begin
         if (reset) begin
-            state <= WAIT_COMMAND;
-            cursor_x <= 4'd0;
-            cursor_y <= 4'd0;
+            state       <= CLEARING;
+            cursor_x    <= 6'd0;
+            cursor_y    <= 6'd0;
             present_pulse <= 1'b0;
-            for (i = 0; i < 256; i = i + 1)
-                framebuffer[i] <= 1'b0;
+            clear_addr  <= 12'd0;
         end else begin
             present_pulse <= 1'b0;
-            if (in_valid && in_is_char) begin
-                case (state)
-                    WAIT_COMMAND: begin
+
+            if (wr_en)
+                framebuffer[wr_addr] <= wr_data;
+
+            case (state)
+                CLEARING: begin
+                    if (clear_addr == FB_SIZE - 1) begin
+                        clear_addr <= 12'd0;
+                        state      <= WAIT_COMMAND;
+                    end else begin
+                        clear_addr <= clear_addr + 12'd1;
+                    end
+                end
+                WAIT_COMMAND: begin
+                    if (in_valid && in_is_char) begin
                         case (in_data)
-                            CMD_SET_X: begin
-                                state <= WAIT_X;
-                            end
-                            CMD_SET_Y: begin
-                                state <= WAIT_Y;
-                            end
-                            CMD_PLOT: begin
-                                state <= WAIT_PLOT;
-                            end
+                            CMD_SET_X: state <= WAIT_X;
+                            CMD_SET_Y: state <= WAIT_Y;
+                            CMD_PLOT:  state <= WAIT_PLOT;
                             CMD_CLEAR: begin
-                                for (i = 0; i < 256; i = i + 1)
-                                    framebuffer[i] <= 1'b0;
+                                clear_addr <= 12'd0;
+                                state      <= CLEARING;
                             end
-                            CMD_PRESENT: begin
-                                present_pulse <= 1'b1;
-                            end
+                            CMD_PRESENT: present_pulse <= 1'b1;
                             default: begin
                                 // Not a GPU command; let normal output path handle it.
                             end
                         endcase
                     end
-                    WAIT_X: begin
-                        cursor_x <= in_data[3:0];
+                end
+                WAIT_X: begin
+                    if (in_valid && in_is_char) begin
+                        cursor_x <= in_data[5:0];
+                        state    <= WAIT_COMMAND;
+                    end
+                end
+                WAIT_Y: begin
+                    if (in_valid && in_is_char) begin
+                        cursor_y <= in_data[5:0];
+                        state    <= WAIT_COMMAND;
+                    end
+                end
+                WAIT_PLOT: begin
+                    if (in_valid && in_is_char) begin
                         state <= WAIT_COMMAND;
                     end
-                    WAIT_Y: begin
-                        cursor_y <= in_data[3:0];
-                        state <= WAIT_COMMAND;
-                    end
-                    WAIT_PLOT: begin
-                        framebuffer[{cursor_y, cursor_x}] <= (in_data != 8'd0);
-                        state <= WAIT_COMMAND;
-                    end
-                endcase
-            end
+                end
+            endcase
         end
     end
 endmodule

@@ -61,6 +61,14 @@ module hdmi_top (
     wire        cpu_out_valid;
     wire        cpu_out_is_char;
     wire        cpu_halted;
+    wire        gpu_consumed;
+    wire        gpu_present_pulse;
+    wire        vid_pixel;
+
+    wire [9:0] vid_x_div = x / 10'd10;
+    wire [9:0] vid_y_div = y / 10'd10;
+    wire [5:0] vid_x = vid_x_div[5:0];
+    wire [5:0] vid_y = vid_y_div[5:0];
 
     rutracpu_rom u_rom (
         .address     (cpu_pc),
@@ -71,6 +79,7 @@ module hdmi_top (
         .clk         (pixel_clk),
         .reset       (cpu_reset),
         .instruction (cpu_instr),
+        .consumed    (gpu_consumed),
         .pc          (cpu_pc),
         .acc         (cpu_acc),
         .out_data    (cpu_out_data),
@@ -78,13 +87,6 @@ module hdmi_top (
         .out_is_char (cpu_out_is_char),
         .halted      (cpu_halted)
     );
-
-    // Scale the 16x16 framebuffer up to fill the 640x480 active area
-    wire [3:0] vid_x = x / 10'd40;   // 640 / 16 = 40 px 
-    wire [3:0] vid_y = y / 10'd30;   // 480 / 16 = 30 px 
-    wire       vid_pixel;
-    wire       gpu_consumed;
-    wire       gpu_present_pulse;
 
     rutragpu u_gpu (
         .clk           (pixel_clk),
