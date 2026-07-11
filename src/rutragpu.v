@@ -9,7 +9,7 @@ module rutragpu (
 
     input  wire [5:0] vid_x,
     input  wire [5:0] vid_y,
-    output wire        vid_pixel
+    output wire       vid_pixel
 );
     localparam [7:0] CMD_SET_X = 8'hF0;
     localparam [7:0] CMD_SET_Y = 8'hF1;
@@ -29,7 +29,6 @@ module rutragpu (
     reg [5:0]  cursor_x;
     reg [5:0]  cursor_y;
     reg [11:0] clear_addr;
-    reg        framebuffer [0:FB_SIZE-1];
     wire is_command;
 
     assign is_command = (in_data == CMD_SET_X) ||
@@ -45,14 +44,25 @@ module rutragpu (
         (state == WAIT_PLOT)
     );
 
-    // Combinational read port used by the video-timing side to
-    // fetch the pixel value for the block currently being scanned out.
-    assign vid_pixel = framebuffer[{vid_y, vid_x}];
-
     wire        wr_en   = (state == CLEARING) ||
                           (state == WAIT_PLOT && in_valid && in_is_char);
     wire [11:0] wr_addr = (state == CLEARING) ? clear_addr : {cursor_y, cursor_x};
     wire        wr_data = (state == CLEARING) ? 1'b0 : (in_data != 8'd0);
+
+    Gowin_SDPB u_framebuffer (
+        .clka   (clk),
+        .cea    (wr_en),
+        .reseta (reset),
+        .ada    (wr_addr),
+        .din    (wr_data),
+
+        .clkb   (clk),
+        .ceb    (1'b1),
+        .resetb (reset),
+        .oce    (1'b1),
+        .adb    ({vid_y, vid_x}),
+        .dout   (vid_pixel)
+    );
 
     always @(posedge clk or posedge reset) begin
         if (reset) begin
@@ -63,9 +73,6 @@ module rutragpu (
             clear_addr  <= 12'd0;
         end else begin
             present_pulse <= 1'b0;
-
-            if (wr_en)
-                framebuffer[wr_addr] <= wr_data;
 
             case (state)
                 CLEARING: begin

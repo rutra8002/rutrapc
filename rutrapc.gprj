@@ -7,6 +7,7 @@
     <FileList>
         <File path="src/dvi_tx/dvi_tx.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_rpll/gowin_rpll.v" type="file.verilog" enable="1"/>
+        <File path="src/gowin_sdpb/gowin_sdpb.v" type="file.verilog" enable="1"/>
         <File path="src/hdmi_top.v" type="file.verilog" enable="1"/>
         <File path="src/rutracpu.v" type="file.verilog" enable="1"/>
         <File path="src/rutracpu_rom.v" type="file.verilog" enable="1"/>

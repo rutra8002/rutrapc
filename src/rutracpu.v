@@ -36,6 +36,7 @@ module rutracpu (
             halted <= 1'b0;
             out_pending <= 1'b0;
         end else if (!halted) begin
+            if (out_pending) begin
                 if (consumed) begin
                     out_valid   <= 1'b0;
                     out_pending <= 1'b0;
