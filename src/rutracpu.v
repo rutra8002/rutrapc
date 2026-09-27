@@ -12,9 +12,17 @@ module rutracpu (
 );
     reg [7:0] ram [0:255];
     reg out_pending;
+    reg out_second_pending;
+    reg [7:0] out_second_data;
 
     wire [3:0] opcode = instruction[11:8];
     wire [7:0] operand_imm = instruction[7:0];
+
+    localparam [7:0] GPU_CMD_SET_X   = 8'hF0;
+    localparam [7:0] GPU_CMD_SET_Y   = 8'hF1;
+    localparam [7:0] GPU_CMD_PLOT    = 8'hF2;
+    localparam [7:0] GPU_CMD_CLEAR   = 8'hF3;
+    localparam [7:0] GPU_CMD_PRESENT = 8'hF4;
 
     initial begin
         pc = 8'd0;
@@ -24,6 +32,8 @@ module rutracpu (
         out_is_char = 1'b0;
         halted = 1'b0;
         out_pending = 1'b0;
+        out_second_pending = 1'b0;
+        out_second_data = 8'd0;
     end
 
     always @(posedge clk or posedge reset) begin
@@ -35,12 +45,22 @@ module rutracpu (
             out_is_char <= 1'b0;
             halted <= 1'b0;
             out_pending <= 1'b0;
+            out_second_pending <= 1'b0;
+            out_second_data <= 8'd0;
         end else if (!halted) begin
             if (out_pending) begin
                 if (consumed) begin
-                    out_valid   <= 1'b0;
-                    out_pending <= 1'b0;
-                    pc          <= pc + 8'd1;
+                    out_valid <= 1'b0;
+                    // send second byte after first one is sent
+                    if (out_second_pending) begin
+                        out_data           <= out_second_data;
+                        out_is_char        <= 1'b1;
+                        out_valid          <= 1'b1;
+                        out_second_pending <= 1'b0;
+                    end else begin
+                        out_pending <= 1'b0;
+                        pc          <= pc + 8'd1;
+                    end
                 end
             end else begin
                 out_valid <= 1'b0;
@@ -84,6 +104,44 @@ module rutracpu (
                         out_is_char <= 1'b1;
                         out_valid   <= 1'b1;
                         out_pending <= 1'b1;
+                    end
+                    4'hA: begin                                // GPU_SETX   (x = acc)
+                        out_data           <= GPU_CMD_SET_X;
+                        out_is_char        <= 1'b1;
+                        out_valid          <= 1'b1;
+                        out_pending        <= 1'b1;
+                        out_second_pending <= 1'b1;
+                        out_second_data    <= acc;
+                    end
+                    4'hB: begin                                // GPU_SETY   (y = acc)
+                        out_data           <= GPU_CMD_SET_Y;
+                        out_is_char        <= 1'b1;
+                        out_valid          <= 1'b1;
+                        out_pending        <= 1'b1;
+                        out_second_pending <= 1'b1;
+                        out_second_data    <= acc;
+                    end
+                    4'hC: begin                                // GPU_PLOT   (pixel = acc)
+                        out_data           <= GPU_CMD_PLOT;
+                        out_is_char        <= 1'b1;
+                        out_valid          <= 1'b1;
+                        out_pending        <= 1'b1;
+                        out_second_pending <= 1'b1;
+                        out_second_data    <= acc;
+                    end
+                    4'hD: begin                                // GPU_CLEAR
+                        out_data           <= GPU_CMD_CLEAR;
+                        out_is_char        <= 1'b1;
+                        out_valid          <= 1'b1;
+                        out_pending        <= 1'b1;
+                        out_second_pending <= 1'b0;
+                    end
+                    4'hE: begin                                // GPU_PRESENT
+                        out_data           <= GPU_CMD_PRESENT;
+                        out_is_char        <= 1'b1;
+                        out_valid          <= 1'b1;
+                        out_pending        <= 1'b1;
+                        out_second_pending <= 1'b0;
                     end
                     4'hF: halted <= 1'b1;                      // HALT
                     default: pc <= pc + 8'd1;
