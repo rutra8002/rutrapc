@@ -55,15 +55,21 @@ module hdmi_top (
     wire cpu_reset = ~clk_rst_n;   // active-high reset for CPU/GPU
 
     wire [7:0]  cpu_pc;
-    wire [11:0] cpu_instr;
+    wire [15:0] cpu_instr;
     wire [7:0]  cpu_acc;
     wire [7:0]  cpu_out_data;
     wire        cpu_out_valid;
     wire        cpu_out_is_char;
     wire        cpu_halted;
-    wire        gpu_consumed;
     wire        gpu_present_pulse;
     wire        vid_pixel;
+
+    wire        cpu_consumed = 1'b1;
+
+    wire [3:0]  gpu_cmd;
+    wire [7:0]  gpu_arg;
+    wire        gpu_start;
+    wire        gpu_done;
 
     wire [9:0] vid_x_div = x / 10'd10;
     wire [9:0] vid_y_div = y / 10'd10;
@@ -79,22 +85,26 @@ module hdmi_top (
         .clk         (pixel_clk),
         .reset       (cpu_reset),
         .instruction (cpu_instr),
-        .consumed    (gpu_consumed),
+        .consumed    (cpu_consumed),
         .pc          (cpu_pc),
         .acc         (cpu_acc),
         .out_data    (cpu_out_data),
         .out_valid   (cpu_out_valid),
         .out_is_char (cpu_out_is_char),
-        .halted      (cpu_halted)
+        .halted      (cpu_halted),
+        .gpu_cmd     (gpu_cmd),
+        .gpu_arg     (gpu_arg),
+        .gpu_start   (gpu_start),
+        .gpu_done    (gpu_done)
     );
 
     rutragpu u_gpu (
         .clk           (pixel_clk),
         .reset         (cpu_reset),
-        .in_valid      (cpu_out_valid),
-        .in_is_char    (cpu_out_is_char),
-        .in_data       (cpu_out_data),
-        .consumed      (gpu_consumed),
+        .cmd           (gpu_cmd),
+        .arg           (gpu_arg),
+        .start         (gpu_start),
+        .done          (gpu_done),
         .present_pulse (gpu_present_pulse),
         .vid_x         (vid_x),
         .vid_y         (vid_y),
