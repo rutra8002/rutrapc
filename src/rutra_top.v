@@ -1,4 +1,4 @@
-module hdmi_top (
+module rutra_top (
     input  wire clk,          // 27MHz onboard clock (pin 52)
     input  wire rst_n_btn,    // onboard button S1, active-low (pin 4)
     output wire tmds_clk_p, tmds_clk_n,
