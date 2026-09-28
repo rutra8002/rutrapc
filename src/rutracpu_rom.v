@@ -32,6 +32,14 @@ module rutracpu_rom (
         rom[12] = 16'h0602; // JUMP 2                      ; else loop again
         // done: (address 13)
         rom[13] = 16'h0E00; // GPU_PRESENT
-        rom[14] = 16'h0F00; // HALT
+        rom[14] = 16'h0148; // LOAD_IMMEDIATE 'H'
+        rom[15] = 16'h0900; // OUTPUT_CHAR
+        rom[16] = 16'h0169; // LOAD_IMMEDIATE 'i'
+        rom[17] = 16'h0900; // OUTPUT_CHAR
+        rom[18] = 16'h010D; // CR
+        rom[19] = 16'h0900;
+        rom[20] = 16'h010A; // LF
+        rom[21] = 16'h0900;
+        rom[22] = 16'h0F00; // HALT
     end
 endmodule

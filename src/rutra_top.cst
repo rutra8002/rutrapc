@@ -17,3 +17,7 @@ IO_LOC "tmds_d_n[1]" 72;
 
 IO_LOC "tmds_d_p[2]" 75;
 IO_LOC "tmds_d_n[2]" 74;
+
+// uart
+IO_LOC "uart_tx" 17;
+IO_PORT "uart_tx" IO_TYPE=LVCMOS33 PULL_MODE=UP;

@@ -1,6 +1,7 @@
 module rutra_top (
     input  wire clk,          // 27MHz onboard clock (pin 52)
     input  wire rst_n_btn,    // onboard button S1, active-low (pin 4)
+    output wire uart_tx,      // UART to PC via onboard USB bridge (pin 17)
     output wire tmds_clk_p, tmds_clk_n,
     output wire [2:0] tmds_d_p, tmds_d_n
 );
@@ -64,7 +65,17 @@ module rutra_top (
     wire        gpu_present_pulse;
     wire        vid_pixel;
 
-    wire        cpu_consumed = 1'b1;
+    wire        uart_busy;
+    wire        cpu_consumed = ~uart_busy;
+
+    uart_tx #(.CLK_HZ(25_200_000), .BAUD(115200)) u_uart (
+        .clk   (pixel_clk),
+        .rst_n (clk_rst_n),
+        .data  (cpu_out_data),
+        .start (cpu_out_valid & ~uart_busy),
+        .tx    (uart_tx),
+        .busy  (uart_busy)
+    );
 
     wire [3:0]  gpu_cmd;
     wire [7:0]  gpu_arg;
