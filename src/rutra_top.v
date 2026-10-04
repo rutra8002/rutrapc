@@ -2,6 +2,7 @@ module rutra_top (
     input  wire clk,          // 27MHz onboard clock (pin 52)
     input  wire rst_n_btn,    // onboard button S1, active-low (pin 4)
     output wire uart_tx,      // UART to PC via onboard USB bridge (pin 17)
+    input  wire uart_rx,      // UART from PC via onboard USB bridge (pin 18)
     output wire tmds_clk_p, tmds_clk_n,
     output wire [2:0] tmds_d_p, tmds_d_n
 );
@@ -53,7 +54,9 @@ module rutra_top (
     // ---------------------------------------------------------
     // rutraCPU + rutraGPU
     // ---------------------------------------------------------
-    wire cpu_reset = ~clk_rst_n;   // active-high reset for CPU/GPU
+    // Bootloader holds the CPU/GPU in reset while a program is being loaded
+    wire        boot_hold;
+    wire        cpu_reset = ~clk_rst_n | boot_hold;   // active-high reset for CPU/GPU
 
     wire [7:0]  cpu_pc;
     wire [15:0] cpu_instr;
@@ -87,7 +90,39 @@ module rutra_top (
     wire [5:0] vid_x = vid_x_div[5:0];
     wire [5:0] vid_y = vid_y_div[5:0];
 
+    // ---------------------------------------------------------
+    // UART bootloader: receives program, writes it into ROM
+    // ---------------------------------------------------------
+    wire [7:0]  rx_data;
+    wire        rx_valid;
+    wire        rom_we;
+    wire [7:0]  rom_waddr;
+    wire [15:0] rom_wdata;
+
+    uart_rx #(.CLK_HZ(25_200_000), .BAUD(115200)) u_uart_rx (
+        .clk   (pixel_clk),
+        .rst_n (clk_rst_n),
+        .rx    (uart_rx),
+        .data  (rx_data),
+        .valid (rx_valid)
+    );
+
+    rutra_boot u_boot (
+        .clk       (pixel_clk),
+        .rst_n     (clk_rst_n),
+        .rx_data   (rx_data),
+        .rx_valid  (rx_valid),
+        .rom_we    (rom_we),
+        .rom_addr  (rom_waddr),
+        .rom_wdata (rom_wdata),
+        .cpu_hold  (boot_hold)
+    );
+
     rutracpu_rom u_rom (
+        .clk         (pixel_clk),
+        .we          (rom_we),
+        .waddr       (rom_waddr),
+        .wdata       (rom_wdata),
         .address     (cpu_pc),
         .instruction (cpu_instr)
     );
