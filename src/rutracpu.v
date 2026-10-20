@@ -120,8 +120,8 @@ module rutracpu (
                     8'h0C: begin                                                     // GPU_PLOT (pixel = acc)
                         gpu_cmd <= GPU_PLOT; gpu_arg <= acc; gpu_start <= 1'b1; gpu_pending <= 1'b1;
                     end
-                    8'h0D: begin                                                     // GPU_CLEAR
-                        gpu_cmd <= GPU_CLEAR; gpu_start <= 1'b1; gpu_pending <= 1'b1;
+                    8'h0D: begin                                                     // GPU_CLEAR (color = acc)
+                        gpu_cmd <= GPU_CLEAR; gpu_arg <= acc; gpu_start <= 1'b1; gpu_pending <= 1'b1;
                     end
                     8'h0E: begin                                                     // GPU_PRESENT
                         gpu_cmd <= GPU_PRESENT; gpu_start <= 1'b1; gpu_pending <= 1'b1;

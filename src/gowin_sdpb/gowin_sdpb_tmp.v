@@ -5,13 +5,13 @@
 //Part Number: GW1NR-LV9QN88PC6/I5
 //Device: GW1NR-9
 //Device Version: C
-//Created Time: Sat Jul 11 09:21:00 2026
+//Created Time: Tue Oct 20 16:53:32 2026
 
 //Change the instance name and port connections to the signal names
 //--------Copy here to design--------
 
     Gowin_SDPB your_instance_name(
-        .dout(dout), //output [0:0] dout
+        .dout(dout), //output [7:0] dout
         .clka(clka), //input clka
         .cea(cea), //input cea
         .reseta(reseta), //input reseta
@@ -19,9 +19,9 @@
         .ceb(ceb), //input ceb
         .resetb(resetb), //input resetb
         .oce(oce), //input oce
-        .ada(ada), //input [11:0] ada
-        .din(din), //input [0:0] din
-        .adb(adb) //input [11:0] adb
+        .ada(ada), //input [14:0] ada
+        .din(din), //input [7:0] din
+        .adb(adb) //input [14:0] adb
     );
 
 //--------Copy end-------------------

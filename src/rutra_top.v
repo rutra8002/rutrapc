@@ -66,7 +66,7 @@ module rutra_top (
     wire        cpu_out_is_char;
     wire        cpu_halted;
     wire        gpu_present_pulse;
-    wire        vid_pixel;
+    wire [7:0]  vid_pixel;
 
     wire        uart_busy;
     wire        cpu_consumed = ~uart_busy;
@@ -85,10 +85,8 @@ module rutra_top (
     wire        gpu_start;
     wire        gpu_done;
 
-    wire [9:0] vid_x_div = x / 10'd10;
-    wire [9:0] vid_y_div = y / 10'd10;
-    wire [5:0] vid_x = vid_x_div[5:0];
-    wire [5:0] vid_y = vid_y_div[5:0];
+    wire [7:0] vid_x = x[9:2];                      // 640 / 4 = 160
+    wire [7:0] vid_y = y[9:2];                      // 480 / 4 = 120
 
     // ---------------------------------------------------------
     // UART bootloader: receives program, writes it into ROM
@@ -158,18 +156,23 @@ module rutra_top (
     );
 
     // ---------------------------------------------------------
-    // white if on, blueish black if off
+    // RGB332 pixel -> 24 bit color
+    // sync/DE are delayed to line up with the pixel pipeline:
+    // x,y reg (1) + BSRAM read, bypass mode (1) + color reg (1)
     // ---------------------------------------------------------
+    localparam PIPE = 3;
+    reg [PIPE-1:0] de_d, hs_d, vs_d;
+    always @(posedge pixel_clk) begin
+        de_d <= {de_d[PIPE-2:0], active};
+        hs_d <= {hs_d[PIPE-2:0], hsync};
+        vs_d <= {vs_d[PIPE-2:0], vsync};
+    end 
+
     reg [7:0] red, green, blue;
     always @(posedge pixel_clk) begin
-        if (active) begin
-            if (vid_pixel)
-                {red, green, blue} <= {8'hFF, 8'hFF, 8'hFF}; // white
-            else
-                {red, green, blue} <= {8'h00, 8'h00, 8'h20}; // dim blue
-        end else begin
-            {red, green, blue} <= 24'h0;
-        end
+        red   <= {vid_pixel[7:5], vid_pixel[7:5], vid_pixel[7:6]};
+        green <= {vid_pixel[4:2], vid_pixel[4:2], vid_pixel[4:3]};
+        blue  <= {4{vid_pixel[1:0]}};
     end
 
     // ---------------------------------------------------------
@@ -180,9 +183,9 @@ module rutra_top (
         .I_rst_n      (clk_rst_n),
         .I_serial_clk (serial_clk),
         .I_rgb_clk    (pixel_clk),
-        .I_rgb_vs     (vsync),
-        .I_rgb_hs     (hsync),
-        .I_rgb_de     (active),
+        .I_rgb_vs     (vs_d[PIPE-1]),
+        .I_rgb_hs     (hs_d[PIPE-1]),
+        .I_rgb_de     (de_d[PIPE-1]),
         .I_rgb_r      (red),
         .I_rgb_g      (green),
         .I_rgb_b      (blue),
