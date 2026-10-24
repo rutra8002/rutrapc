@@ -84,6 +84,7 @@ module rutra_top (
     wire [7:0]  gpu_arg;
     wire        gpu_start;
     wire        gpu_done;
+    wire        gpu_ready;
 
     wire [7:0] vid_x = x[9:2];                      // 640 / 4 = 160
     wire [7:0] vid_y = y[9:2];                      // 480 / 4 = 120
@@ -139,6 +140,7 @@ module rutra_top (
         .gpu_cmd     (gpu_cmd),
         .gpu_arg     (gpu_arg),
         .gpu_start   (gpu_start),
+        .gpu_ready   (gpu_ready),
         .gpu_done    (gpu_done)
     );
 
@@ -148,6 +150,7 @@ module rutra_top (
         .cmd           (gpu_cmd),
         .arg           (gpu_arg),
         .start         (gpu_start),
+        .ready         (gpu_ready),
         .done          (gpu_done),
         .present_pulse (gpu_present_pulse),
         .vid_x         (vid_x),

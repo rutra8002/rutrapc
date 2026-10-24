@@ -5,6 +5,7 @@ module rutragpu (
     input  wire [3:0] cmd,
     input  wire [7:0] arg,
     input  wire       start,
+    output wire       ready,
     output reg        done,
 
     output reg present_pulse,
@@ -31,6 +32,8 @@ module rutragpu (
     reg [7:0]  cursor_y;
     reg [14:0] clear_addr;
     reg [7:0]  clear_color;
+
+    assign ready = (state == WAIT);
 
     wire        in_bounds   = (cursor_x < FB_W) && (cursor_y < FB_H);
     wire [14:0] cur_addr    = {cursor_y, 7'b0} + {cursor_y, 5'b0} + cursor_x;

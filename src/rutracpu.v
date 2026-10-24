@@ -13,6 +13,7 @@ module rutracpu (
     output reg [3:0] gpu_cmd,
     output reg [7:0] gpu_arg,
     output reg       gpu_start,
+    input  wire      gpu_ready,
     input  wire      gpu_done
 );
     reg [7:0] ram [0:255];
@@ -63,8 +64,9 @@ module rutracpu (
                     pc          <= pc + 8'd1;
                 end
             end else if (gpu_pending) begin
-                gpu_start <= 1'b0;
-                if (gpu_done) begin
+                if (gpu_start) begin
+                    if (gpu_ready) gpu_start <= 1'b0;
+                end else if (gpu_done) begin
                     gpu_pending <= 1'b0;
                     pc          <= pc + 8'd1;
                 end
