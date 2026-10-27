@@ -58,9 +58,14 @@ module rutra_top (
     wire        boot_hold;
     wire        cpu_reset = ~clk_rst_n | boot_hold;   // active-high reset for CPU/GPU
 
-    wire [7:0]  cpu_pc;
-    wire [15:0] cpu_instr;
-    wire [7:0]  cpu_acc;
+    localparam MEMORY_ADDRESS_BITS = 10;                // 1024 words of unified 16-bit memory
+
+    wire [15:0] cpu_pc;
+    wire [15:0] cpu_r1, cpu_r2;
+    wire [MEMORY_ADDRESS_BITS-1:0] cpu_memory_address;
+    wire        cpu_memory_write_enable;
+    wire [15:0] cpu_memory_write_data;
+    wire [15:0] cpu_memory_read_data;
     wire [7:0]  cpu_out_data;
     wire        cpu_out_valid;
     wire        cpu_out_is_char;
@@ -81,7 +86,7 @@ module rutra_top (
     );
 
     wire [3:0]  gpu_cmd;
-    wire [7:0]  gpu_arg;
+    wire [15:0] gpu_arg;
     wire        gpu_start;
     wire        gpu_done;
     wire        gpu_ready;
@@ -94,9 +99,9 @@ module rutra_top (
     // ---------------------------------------------------------
     wire [7:0]  rx_data;
     wire        rx_valid;
-    wire        rom_we;
-    wire [7:0]  rom_waddr;
-    wire [15:0] rom_wdata;
+    wire        boot_write_enable;
+    wire [MEMORY_ADDRESS_BITS-1:0] boot_write_address;
+    wire [15:0] boot_write_data;
 
     uart_rx #(.CLK_HZ(25_200_000), .BAUD(115200)) u_uart_rx (
         .clk   (pixel_clk),
@@ -106,33 +111,39 @@ module rutra_top (
         .valid (rx_valid)
     );
 
-    rutra_boot u_boot (
+    rutra_boot #(.ADDRESS_BITS(MEMORY_ADDRESS_BITS)) u_boot (
         .clk       (pixel_clk),
         .rst_n     (clk_rst_n),
-        .rx_data   (rx_data),
-        .rx_valid  (rx_valid),
-        .rom_we    (rom_we),
-        .rom_addr  (rom_waddr),
-        .rom_wdata (rom_wdata),
-        .cpu_hold  (boot_hold)
+        .uart_rx_data  (rx_data),
+        .uart_rx_valid (rx_valid),
+        .memory_write_enable  (boot_write_enable),
+        .memory_write_address (boot_write_address),
+        .memory_write_data    (boot_write_data),
+        .hold_cpu_in_reset    (boot_hold)
     );
 
-    rutracpu_rom u_rom (
-        .clk         (pixel_clk),
-        .we          (rom_we),
-        .waddr       (rom_waddr),
-        .wdata       (rom_wdata),
-        .address     (cpu_pc),
-        .instruction (cpu_instr)
+    rutracpu_memory #(.MEMORY_ADDRESS_BITS(MEMORY_ADDRESS_BITS)) u_memory (
+        .clk                (pixel_clk),
+        .boot_write_enable  (boot_write_enable),
+        .boot_write_address (boot_write_address),
+        .boot_write_data    (boot_write_data),
+        .cpu_write_enable   (cpu_memory_write_enable),
+        .cpu_address        (cpu_memory_address),
+        .cpu_write_data     (cpu_memory_write_data),
+        .cpu_read_data      (cpu_memory_read_data)
     );
 
-    rutracpu u_cpu (
+    rutracpu #(.MEMORY_ADDRESS_BITS(MEMORY_ADDRESS_BITS)) u_cpu (
         .clk         (pixel_clk),
         .reset       (cpu_reset),
-        .instruction (cpu_instr),
+        .cpu_memory_address    (cpu_memory_address),
+        .cpu_memory_write_enable      (cpu_memory_write_enable),
+        .cpu_memory_write_data   (cpu_memory_write_data),
+        .cpu_memory_read_data   (cpu_memory_read_data),
         .consumed    (cpu_consumed),
         .pc          (cpu_pc),
-        .acc         (cpu_acc),
+        .r1          (cpu_r1),
+        .r2          (cpu_r2),
         .out_data    (cpu_out_data),
         .out_valid   (cpu_out_valid),
         .out_is_char (cpu_out_is_char),
@@ -147,15 +158,15 @@ module rutra_top (
     rutragpu u_gpu (
         .clk           (pixel_clk),
         .reset         (cpu_reset),
-        .cmd           (gpu_cmd),
-        .arg           (gpu_arg),
-        .start         (gpu_start),
-        .ready         (gpu_ready),
-        .done          (gpu_done),
-        .present_pulse (gpu_present_pulse),
-        .vid_x         (vid_x),
-        .vid_y         (vid_y),
-        .vid_pixel     (vid_pixel)
+        .command       (gpu_cmd),
+        .argument      (gpu_arg),
+        .command_start (gpu_start),
+        .command_ready (gpu_ready),
+        .command_done  (gpu_done),
+        .present_frame_pulse (gpu_present_pulse),
+        .video_x       (vid_x),
+        .video_y       (vid_y),
+        .video_pixel   (vid_pixel)
     );
 
     // ---------------------------------------------------------
